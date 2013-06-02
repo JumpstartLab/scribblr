@@ -1,5 +1,4 @@
-//=require application
-//=require_tree ./templates
+//= require spec_helper
 
 describe("notification", function() {
   beforeEach(function() {

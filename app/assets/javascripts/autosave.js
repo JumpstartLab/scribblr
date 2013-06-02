@@ -1,47 +1,61 @@
+(function($) {
+  $.fn.autosave = function(command) {
+    this.each(function() {
+      var form = this;
+      if (!form.autosaving) {
+        form.autosaving = true;
+        var $form = $(form);
+        form.savedForm = $form.serialize();
 
-$(function() {
-  var $form = $("form[data-autosave]");
-  var savedForm = $form.serialize();
-  var autosaveInterval = window.setInterval(saveFormIfChanged, 10000);
+        $(window).on("unload", function() {
+          saveFormIfChanged(false);
+        });
 
-  $(window).on("unload", function() {
-    saveFormIfChanged(false);
+        $form.on("submit", function() {
+          savedForm = $form.serialize();
+        });
+
+        form.saveForm = function(async) {
+          if (async === undefined) async = true;
+
+          $.ajax({
+            url: $form.attr("action"),
+            type: "POST",
+            data: $form.serialize(),
+            dataType: "json",
+            async: async
+          }).done(function(data, status, response) {
+            notify("Post saved.", "success");
+          }).fail(form.formError);
+        }
+
+        form.saveFormIfChanged = function(async) {
+          var currentForm = $form.serialize();
+
+          if (currentForm !== form.savedForm) {
+            form.saveForm($form, async);
+            form.savedForm = currentForm;
+            return true;
+          } else {
+            return false;
+          }
+        }
+
+        form.formError = function() {
+          clearInterval(form.autosaveInterval);
+          $(window).off("unload");
+          $form.off("submit");
+        }
+
+        form.autosaveInterval = window.setInterval(form.saveFormIfChanged, 10000);
+      }
+
+      if (command === "save") form.saveForm();
+    });
+  }
+
+  $(function() {
+    $("form[data-autosave]").autosave();
   });
-
-  $form.on("submit", function() {
-    savedForm = $(this).serialize();
-  });
-
-  function saveForm(async) {
-    if (async === undefined) async = true;
-
-    $.ajax({
-      url: $form.attr("action"),
-      type: "POST",
-      data: $form.serialize(),
-      dataType: "json",
-      async: async
-    }).done(function(data, status, response) {
-      notify("Post saved.", "success");
-    }).fail(formError);
-  }
-
-  function saveFormIfChanged(async) {
-    var currentForm = $form.serialize();
-
-    if (currentForm !== savedForm) {
-      saveForm(async);
-      savedForm = currentForm;
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  function formError() {
-    clearInterval(autosaveInterval);
-    $(window).off("unload");
-    $form.off("submit");
-  }
-});
+}( jQuery ));
 
