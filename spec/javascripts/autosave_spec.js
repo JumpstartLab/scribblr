@@ -5,6 +5,7 @@ describe("autosave", function() {
     beforeEach(function() {
       server = sinon.fakeServer.create();
       $("body").html(JST['templates/autosave_form']());
+      $("form").autosave();
     });
 
     afterEach(function() {
@@ -12,26 +13,22 @@ describe("autosave", function() {
     });
 
     it("should save a form via ajax", function() {
+      $("form input").val("A different title");
       $("form").autosave("save");
       
       var request = server.requests[0];
       request.url.should.equal("/posts");
-      request.requestBody.should.equal("title=My+Post+Title");
+      request.requestBody.should.equal("title=A+different+title");
       request.respond(204, {}, "");
       $(".page-header").text().should.match(/Post saved/);
     });
 
     it("should only save if values have changed", function() {
-      console.debug("second test");
-      $("form").autosave("save");
-      console.debug("again!");
-      $("form").autosave("save");
-      console.debug("check");
-      server.requests.length.should.equal(1);
+      server.requests.length.should.equal(0);
 
       $("form input").val("A different title");
       $("form").autosave("save");
-      server.requests.length.should.equal(2);
+      server.requests.length.should.equal(1);
     });
   });
 });
